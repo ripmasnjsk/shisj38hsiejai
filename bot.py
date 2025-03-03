@@ -3,17 +3,15 @@ import requests
 import random
 import string
 import re
+import logging
 from bs4 import BeautifulSoup
-from telegram import Update, Chat
+from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
-from flask import Flask
-import os
-import asyncio
 
 # Telegram bot token (Get from BotFather)
 BOT_TOKEN = "8161659596:AAHUtmeKjVS6_A2c7-oVReZccZ485JYp3mk"
 
-# Group chat ID (replace with actual ID)
+# Group chat ID (replace with actual ID from Step 1)
 ALLOWED_GROUP_ID = -1002378339182  # Replace with your actual group ID
 
 # Reporting endpoint
@@ -24,6 +22,10 @@ user_agents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
 ]
+
+# Set up logging for easier debugging
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def generate_random_ip():
     """Generates a fake IP address."""
@@ -44,7 +46,7 @@ def fetch_url(client, url, headers):
         response.raise_for_status()
         return response.text
     except requests.RequestException as e:
-        print(f"Error fetching {url}: {e}")
+        logger.error(f"Error fetching {url}: {e}")
     return None
 
 def scrape_and_report(url):
@@ -81,7 +83,7 @@ def scrape_and_report(url):
                     "X-Real-IP": random_ip
                 })
 
-                print(f"Reporting {url} with IP: {random_ip}")
+                logger.info(f"Reporting {url} with IP: {random_ip}")
 
                 response = client.post(REPORT_ENDPOINT, data=payload, headers=headers)
                 if response.status_code == 200:
@@ -128,18 +130,10 @@ async def handle_group_messages(update: Update, context: CallbackContext):
             report_status = scrape_and_report(url)
             await update.message.reply_text(report_status)
 
-app_flask = Flask(__name__)
-
-@app_flask.route('/')
-def index():
-    return "Flask app is running!"
-
-async def run_flask():
-    """Runs the Flask app."""
-    app_flask.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
-
 async def main():
     """Runs the Telegram bot."""
+    logger.info("Starting bot...")
+
     app_telegram = Application.builder().token(BOT_TOKEN).build()
 
     # Command Handlers
@@ -149,15 +143,16 @@ async def main():
     # Message Handler for Group Chat (Filters Links & Enforces Group Restriction)
     app_telegram.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS, handle_group_messages))
 
-    print("Bot is running and restricted to the specified group...")
+    logger.info("Bot is running and restricted to the specified group...")
 
-    await app_telegram.start()
-    await app_telegram.updater.start_polling()
-    await app_telegram.updater.idle()
-
-async def run_both():
-    """Runs both Flask and Telegram bot together."""
-    await asyncio.gather(run_flask(), main())
+    try:
+        await app_telegram.start()
+        await app_telegram.updater.start_polling()
+        logger.info("Bot polling started successfully.")
+        await app_telegram.updater.idle()
+    except Exception as e:
+        logger.error(f"Failed to start bot polling: {e}")
 
 if __name__ == "__main__":
-    asyncio.run(run_both())
+    import asyncio
+    asyncio.run(main())
