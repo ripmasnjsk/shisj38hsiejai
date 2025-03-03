@@ -1,19 +1,19 @@
-import os
 import time
 import requests
 import random
 import string
 import re
 from bs4 import BeautifulSoup
-from flask import Flask, request
 from telegram import Update, Chat
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
-import threading
+from flask import Flask
+import os
+import asyncio
 
 # Telegram bot token (Get from BotFather)
 BOT_TOKEN = "8161659596:AAHUtmeKjVS6_A2c7-oVReZccZ485JYp3mk"
 
-# Group chat ID (replace with actual ID from Step 1)
+# Group chat ID (replace with actual ID)
 ALLOWED_GROUP_ID = -1002378339182  # Replace with your actual group ID
 
 # Reporting endpoint
@@ -24,8 +24,6 @@ user_agents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
 ]
-
-app_flask = Flask(__name__)
 
 def generate_random_ip():
     """Generates a fake IP address."""
@@ -130,26 +128,36 @@ async def handle_group_messages(update: Update, context: CallbackContext):
             report_status = scrape_and_report(url)
             await update.message.reply_text(report_status)
 
-def run_telegram_bot():
-    """Runs the Telegram bot in a separate thread."""
-    app = Application.builder().token(BOT_TOKEN).build()
-
-    # Command Handlers
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", help_command))
-
-    # Message Handler for Group Chat (Filters Links & Enforces Group Restriction)
-    app.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS, handle_group_messages))
-
-    print("Bot is running and restricted to the specified group...")
-    app.run_polling()
+app_flask = Flask(__name__)
 
 @app_flask.route('/')
 def index():
-    """Simple route to keep the web server alive."""
-    return "Telegram bot is running!"
+    return "Flask app is running!"
 
-# Run Flask and the bot in parallel
-if __name__ == "__main__":
-    threading.Thread(target=run_telegram_bot).start()
+async def run_flask():
+    """Runs the Flask app."""
     app_flask.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
+
+async def main():
+    """Runs the Telegram bot."""
+    app_telegram = Application.builder().token(BOT_TOKEN).build()
+
+    # Command Handlers
+    app_telegram.add_handler(CommandHandler("start", start))
+    app_telegram.add_handler(CommandHandler("help", help_command))
+
+    # Message Handler for Group Chat (Filters Links & Enforces Group Restriction)
+    app_telegram.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS, handle_group_messages))
+
+    print("Bot is running and restricted to the specified group...")
+
+    await app_telegram.start()
+    await app_telegram.updater.start_polling()
+    await app_telegram.updater.idle()
+
+async def run_both():
+    """Runs both Flask and Telegram bot together."""
+    await asyncio.gather(run_flask(), main())
+
+if __name__ == "__main__":
+    asyncio.run(run_both())
