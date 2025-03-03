@@ -9,7 +9,7 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 # Load environment variables
-BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8161659596:AAHUtmeKjVS6_A2c7-oVReZccZ485JYp3mk")
 ALLOWED_GROUP_ID = int(os.getenv("ALLOWED_GROUP_ID", -1002378339182))  # Replace with your group ID
 REPORT_ENDPOINT = "https://groupsor.link/data/addreport"
 user_agents = [
