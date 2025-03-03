@@ -134,6 +134,7 @@ async def main():
     """Runs the Telegram bot."""
     logger.info("Starting bot...")
 
+    # Properly initialize the Application
     app_telegram = Application.builder().token(BOT_TOKEN).build()
 
     # Command Handlers
@@ -146,6 +147,8 @@ async def main():
     logger.info("Bot is running and restricted to the specified group...")
 
     try:
+        # Start polling
+        await app_telegram.initialize()
         await app_telegram.start()
         await app_telegram.updater.start_polling()
         logger.info("Bot polling started successfully.")
