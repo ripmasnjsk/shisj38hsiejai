@@ -9,7 +9,7 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 # Load environment variables
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8161659596:AAHUtmeKjVS6_A2c7-oVReZccZ485JYp3mk")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN")
 ALLOWED_GROUP_ID = int(os.getenv("ALLOWED_GROUP_ID", -1002378339182))  # Replace with your group ID
 REPORT_ENDPOINT = "https://groupsor.link/data/addreport"
 user_agents = [
@@ -17,6 +17,7 @@ user_agents = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
 ]
 
+# Flask app setup for webhook or any additional use
 app = Flask(__name__)
 
 def generate_random_ip():
@@ -108,39 +109,17 @@ async def handle_group_messages(update: Update, context):
             report_status = scrape_and_report(url)
             await update.message.reply_text(report_status)
 
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    """Webhook endpoint to receive Telegram updates."""
-    data = request.get_json()
-    update = Update.de_json(data, None)
-
-    # Handling message updates
-    if update.message and update.message.text:
-        chat_id = update.message.chat_id
-        text = update.message.text
-
-        if chat_id == ALLOWED_GROUP_ID:
-            urls = re.findall(r'https?://[^\s]+', text)
-            if urls:
-                for url in urls:
-                    report_status = scrape_and_report(url)
-                    update.message.reply_text(report_status)
-
-    return {"status": "ok"}
-
+# Telegram bot main function
 def main():
     """Initialize the Telegram bot."""
-    app = Application.builder().token(BOT_TOKEN).build()
+    bot_app = Application.builder().token(BOT_TOKEN).build()
 
     # Command Handlers
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", help_command))
-    app.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS, handle_group_messages))
+    bot_app.add_handler(CommandHandler("start", start))
+    bot_app.add_handler(CommandHandler("help", help_command))
+    bot_app.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS, handle_group_messages))
 
-    app.run_polling()
+    bot_app.run_polling()
 
 if __name__ == "__main__":
     main()
-
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=8000)
