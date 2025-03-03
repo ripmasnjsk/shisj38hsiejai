@@ -80,6 +80,34 @@ def scrape_and_report(url):
     except Exception as e:
         return f"❌ Error processing {url}: {e}"
 
+# Define the /start command handler
+async def start(update: Update, context):
+    """Handles the /start command."""
+    await update.message.reply_text("Welcome to the reporting bot. Send a group invite link to report.")
+
+# Define the /help command handler
+async def help_command(update: Update, context):
+    """Handles the /help command."""
+    await update.message.reply_text("Send any group invite link in this chat to report it.")
+
+# Define the message handler for group messages
+async def handle_group_messages(update: Update, context):
+    """Handles messages in the allowed group chat."""
+    chat_id = update.message.chat_id
+
+    if chat_id != ALLOWED_GROUP_ID:
+        return  # Ignore messages from other groups
+
+    text = update.message.text
+
+    # Extract URLs from the message
+    urls = re.findall(r'https?://[^\s]+', text)
+    
+    if urls:
+        for url in urls:
+            report_status = scrape_and_report(url)
+            await update.message.reply_text(report_status)
+
 @app.route('/webhook', methods=['POST'])
 def webhook():
     """Webhook endpoint to receive Telegram updates."""
