@@ -142,6 +142,10 @@ async def main():
 
     await app.run_polling()
 
-# ✅ Run the bot properly on Render
+# ✅ Run the bot properly in an async-safe way
 if __name__ == "__main__":
-    asyncio.run(main())  # Ensures correct execution in Render
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(main())  # If event loop is already running, use create_task
+    except RuntimeError:
+        asyncio.run(main())  # If no event loop is running, start normally
